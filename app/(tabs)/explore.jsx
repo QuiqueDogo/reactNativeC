@@ -15,34 +15,41 @@ import {
     View
 } from 'react-native';
 
-import MapView, { Marker } from 'react-native-maps';
-import mqtt from 'react-native-mqtt';
 import { RadioButton } from 'react-native-paper';
+// import MapView, { Marker } from 'react-native-maps';
+// import init from 'react-native-mqtt';
 
-// let MapView, Marker;
-// if (Platform.OS !== 'web') {
-//   try {
-//     const maps = require('react-native-maps');
-//     MapView = maps.MapView;
-//     Marker = maps.Marker;
-//   } catch (e) {
-//     console.warn('react-native-maps no está instalado');
-//   }
-// } else {
-//   // Implementación dummy para web
-//   MapView = ({ children, style }) => <View style={style}>{children}</View>;
-//   Marker = ({ children }) => <>{children}</>;
-// }
+let MapView, Marker;
+if (Platform.OS !== 'web') {
+  try {
+    const maps = require('react-native-maps');
+    MapView = maps.MapView;
+    Marker = maps.Marker;
+  } catch (e) {
+    console.warn('react-native-maps no está instalado');
+  }
+} else {
+  // Implementación dummy para web
+  MapView = ({ children, style }) => <View style={style}>{children}</View>;
+  Marker = ({ children }) => <>{children}</>;
+}
+
+import * as Paho from 'paho-mqtt';
+
+
 
 // // Solución para MQTT
 // let mqtt;
 // if (Platform.OS !== 'web') {
 //   try {
+//     console.log('aqui s')
 //     mqtt = require('react-native-mqtt');
 //   } catch (e) {
 //     console.warn('react-native-mqtt no está instalado');
 //   }
 // } else {
+//     console.log('aqui s2')
+
 //   // Implementación dummy para web o usa mqtt.js para web
 //   mqtt = {
 //     createClient: () => ({
@@ -532,192 +539,207 @@ function DevicesBendita() {
   };
 
   const connectToMQTT = async () => {
+    console.log('aqui')
     if (!mqttconnected) {
       try {
         const clientId = await getClientId();
+        
         const options = {
-          clientId,
-          username: 'cristian',
-          password: 'R3gh45#yER',
-          clean: true,
+            clientId,
+            username: 'cristian',
+            password: 'R3gh45#yER',
+            clean: true,
         };
+        const client = new Paho.Client('mqtt://2807ccce5f924766a34afeab1eb54217.s2.eu.hivemq.cloud:8884/mqtt', 9001, clientId);
 
-        const client = mqtt.connect('wss://2807ccce5f924766a34afeab1eb54217.s2.eu.hivemq.cloud:8884/mqtt', options);
 
-        client.on('connect', () => {
-          list.forEach((device) => {
-            client.subscribe(`gbic/RESPONSE/${device.espid}`, { qos: 1 }, (error) => {
-              if (error) {
-                console.log(`Error al suscribirse a ${device.espid}:`, error);
-              } else {
-                console.log(`Suscrito a ${device.espid}`);
-              }
-            });
-          });
+        client.connect({
+        userName: 'cristian',
+        password: 'R3gh45',
+        onSuccess() {
+            console.log('Connection established');
+        },
+        onFailure(error) {
+            console.error(error);
+        },
+        }); 
+        // console.log(clientId,'aqui2', mqtt)
+        // const client = mqtt.connect('wss://2807ccce5f924766a34afeab1eb54217.s2.eu.hivemq.cloud:8884/mqtt', options);
 
-          setMqClient(client);
-          setdisabledList(true);
-          setMqttconnected(true);
-        });
+        // client.on('connect', () => {
+        //   list.forEach((device) => {
+        //     client.subscribe(`gbic/RESPONSE/${device.espid}`, { qos: 1 }, (error) => {
+        //       if (error) {
+        //         console.log(`Error al suscribirse a ${device.espid}:`, error);
+        //       } else {
+        //         console.log(`Suscrito a ${device.espid}`);
+        //       }
+        //     });
+        //   });
 
-        client.on('message', (topic, message) => {
-          setLastAct(new Date().toLocaleString());
-          const espid = topic.split('/').pop();
+        //   setMqClient(client);
+        //   setdisabledList(true);
+        //   setMqttconnected(true);
+        // });
 
-          try {
-            const data = JSON.parse(message.toString());
-            setActivityMap((prev) => ({
-              ...prev,
-              [espid]: true,
-            }));
+        // client.on('message', (topic, message) => {
+        //   setLastAct(new Date().toLocaleString());
+        //   const espid = topic.split('/').pop();
 
-            const isAnswordShowme =
-              data.server && data.token && data.time && data.db && data.location && data.zone;
+        //   try {
+        //     const data = JSON.parse(message.toString());
+        //     setActivityMap((prev) => ({
+        //       ...prev,
+        //       [espid]: true,
+        //     }));
 
-            if (isAnswordShowme) {
-              setCurrentID((prev) => ({
-                ...prev,
-                DeviceID: espid,
-                IP: data.IP || '',
-                Server: data.server || '',
-                token: data.token || '',
-                Time: String(data.time) || '',
-                port: String(data.port) || '',
-                Token: data.token ? data.token.substring(0, 20) + '...' : '' || '',
-                Database: data.db || '',
-                Ubicación: data.location || '',
-                Zona: data.zone || '',
-                updatepass: data.updatepass || '',
-                Compilation: data.COMPILATION,
-              }));
+        //     const isAnswordShowme =
+        //       data.server && data.token && data.time && data.db && data.location && data.zone;
 
-              setEncrypted(encryptPassword(espid));
+        //     if (isAnswordShowme) {
+        //       setCurrentID((prev) => ({
+        //         ...prev,
+        //         DeviceID: espid,
+        //         IP: data.IP || '',
+        //         Server: data.server || '',
+        //         token: data.token || '',
+        //         Time: String(data.time) || '',
+        //         port: String(data.port) || '',
+        //         Token: data.token ? data.token.substring(0, 20) + '...' : '' || '',
+        //         Database: data.db || '',
+        //         Ubicación: data.location || '',
+        //         Zona: data.zone || '',
+        //         updatepass: data.updatepass || '',
+        //         Compilation: data.COMPILATION,
+        //       }));
 
-              if (data.Perifs && Array.isArray(data.Perifs)) {
-                const perif3 = data.Perifs.find((perif) => perif.idx === 3);
-                const perif4 = data.Perifs.find((perif) => perif.idx === 4);
-                setToggled1(perif3 ? perif3.state : false);
-                setToggled2(perif4 ? perif4.state : false);
-              }
+        //       setEncrypted(encryptPassword(espid));
 
-              if (data.getOffset !== undefined) {
-                setOff(data.getOffset);
-              } else {
-                setOff('-');
-              }
+        //       if (data.Perifs && Array.isArray(data.Perifs)) {
+        //         const perif3 = data.Perifs.find((perif) => perif.idx === 3);
+        //         const perif4 = data.Perifs.find((perif) => perif.idx === 4);
+        //         setToggled1(perif3 ? perif3.state : false);
+        //         setToggled2(perif4 ? perif4.state : false);
+        //       }
 
-              const now = new Date();
-              const time = now.toLocaleTimeString();
-              const date = now.toLocaleDateString();
+        //       if (data.getOffset !== undefined) {
+        //         setOff(data.getOffset);
+        //       } else {
+        //         setOff('-');
+        //       }
 
-              setActionMap((prev) => ({
-                ...prev,
-                [espid]: '[' + (data.IP || '') + '] [' + formatName(`${time} ${date}`, 8) + ']',
-              }));
+        //       const now = new Date();
+        //       const time = now.toLocaleTimeString();
+        //       const date = now.toLocaleDateString();
 
-              const updatedList = (prevList) =>
-                prevList.map((item) => {
-                  if (item.espid === espid) {
-                    if (item.lat && item.lng) {
-                      setLat(item.lat);
-                      setLng(item.lng);
-                      setFocus([item.lat, item.lng]);
-                    } else {
-                      setFocus([19.70078, -101.18443]);
-                    }
-                    return { ...item, name: data.location, voltageCFE: '-', temperatura: '-' };
-                  }
-                  return item;
-                });
+        //       setActionMap((prev) => ({
+        //         ...prev,
+        //         [espid]: '[' + (data.IP || '') + '] [' + formatName(`${time} ${date}`, 8) + ']',
+        //       }));
 
-              setList(updatedList);
-              AsyncStorage.setItem('list', JSON.stringify(updatedList));
-              setFlgFromAnswordShowme(true);
-            } else {
-              setActionMap((prev) => {
-                let status = '[Error desconocido]';
+        //       const updatedList = (prevList) =>
+        //         prevList.map((item) => {
+        //           if (item.espid === espid) {
+        //             if (item.lat && item.lng) {
+        //               setLat(item.lat);
+        //               setLng(item.lng);
+        //               setFocus([item.lat, item.lng]);
+        //             } else {
+        //               setFocus([19.70078, -101.18443]);
+        //             }
+        //             return { ...item, name: data.location, voltageCFE: '-', temperatura: '-' };
+        //           }
+        //           return item;
+        //         });
 
-                if (data.statusupload !== undefined) {
-                  status = data.statusupload === '204' ? '[Transmitiendo]' : '[Err en transmisión]';
-                } else if (data.updateSketch !== undefined) {
-                  status = data.updateSketch ? '[updateSketch OK]' : '[Err updateSketch]';
-                } else if (data.updatedatas !== undefined) {
-                  status = data.updatedatas ? '[GBIC data updated]' : '[Err updated]';
-                } else if (data.updateSpiffs !== undefined) {
-                  status = data.updateSpiffs ? '[updateSpiffs OK]' : '[Err updateSpiffs]';
-                } else if (data.ONLINE !== undefined) {
-                  status = data.ONLINE ? '[ONLINE OK]' : '[Err ONLINE]';
-                } else if (data.lastDatas !== undefined) {
-                  status = '[Battery ' + data.Battery.toFixed(1) + '%]';
-                  status =
-                    status +
-                    ' [' +
-                    formatName(formatDuration(data.uptime ? data.uptime : 0), 6) +
-                    ']';
-                  status = status + ' [' + formatName(data.lastDatas, 15) + ']';
+        //       setList(updatedList);
+        //       AsyncStorage.setItem('list', JSON.stringify(updatedList));
+        //       setFlgFromAnswordShowme(true);
+        //     } else {
+        //       setActionMap((prev) => {
+        //         let status = '[Error desconocido]';
 
-                  setLastDatas(
-                    'Encendido desde: ' +
-                      formatDuration(data.uptime ? data.uptime : 0) +
-                      ', con datos: ' +
-                      data.lastDatas +
-                      ' and batteria interna: ' +
-                      data.Battery
-                  );
+        //         if (data.statusupload !== undefined) {
+        //           status = data.statusupload === '204' ? '[Transmitiendo]' : '[Err en transmisión]';
+        //         } else if (data.updateSketch !== undefined) {
+        //           status = data.updateSketch ? '[updateSketch OK]' : '[Err updateSketch]';
+        //         } else if (data.updatedatas !== undefined) {
+        //           status = data.updatedatas ? '[GBIC data updated]' : '[Err updated]';
+        //         } else if (data.updateSpiffs !== undefined) {
+        //           status = data.updateSpiffs ? '[updateSpiffs OK]' : '[Err updateSpiffs]';
+        //         } else if (data.ONLINE !== undefined) {
+        //           status = data.ONLINE ? '[ONLINE OK]' : '[Err ONLINE]';
+        //         } else if (data.lastDatas !== undefined) {
+        //           status = '[Battery ' + data.Battery.toFixed(1) + '%]';
+        //           status =
+        //             status +
+        //             ' [' +
+        //             formatName(formatDuration(data.uptime ? data.uptime : 0), 6) +
+        //             ']';
+        //           status = status + ' [' + formatName(data.lastDatas, 15) + ']';
 
-                  const updatedList = (prevList) =>
-                    prevList.map((item) => {
-                      if (item.espid === espid) {
-                        const datos = Object.fromEntries(
-                          data.lastDatas
-                            .trim()
-                            .split('\n')
-                            .map((line) => line.split('='))
-                        );
+        //           setLastDatas(
+        //             'Encendido desde: ' +
+        //               formatDuration(data.uptime ? data.uptime : 0) +
+        //               ', con datos: ' +
+        //               data.lastDatas +
+        //               ' and batteria interna: ' +
+        //               data.Battery
+        //           );
 
-                        const voltageCFE = parseFloat(datos.voltaje_cfe);
-                        const temperatura = parseFloat(datos.temperatura);
+        //           const updatedList = (prevList) =>
+        //             prevList.map((item) => {
+        //               if (item.espid === espid) {
+        //                 const datos = Object.fromEntries(
+        //                   data.lastDatas
+        //                     .trim()
+        //                     .split('\n')
+        //                     .map((line) => line.split('='))
+        //                 );
 
-                        return {
-                          ...item,
-                          voltageCFE,
-                          temperatura,
-                        };
-                      }
-                      return item;
-                    });
+        //                 const voltageCFE = parseFloat(datos.voltaje_cfe);
+        //                 const temperatura = parseFloat(datos.temperatura);
 
-                  setList(updatedList);
-                }
+        //                 return {
+        //                   ...item,
+        //                   voltageCFE,
+        //                   temperatura,
+        //                 };
+        //               }
+        //               return item;
+        //             });
 
-                const now = new Date();
-                const time = now.toLocaleTimeString();
-                const date = now.toLocaleDateString();
+        //           setList(updatedList);
+        //         }
 
-                status = status + ' [' + formatName(`${time} ${date}`, 8) + ']';
+        //         const now = new Date();
+        //         const time = now.toLocaleTimeString();
+        //         const date = now.toLocaleDateString();
 
-                return {
-                  ...prev,
-                  [espid]: status,
-                };
-              });
-            }
+        //         status = status + ' [' + formatName(`${time} ${date}`, 8) + ']';
 
-            setTimeout(() => {
-              setActivityMap((prev) => ({
-                ...prev,
-                [espid]: false,
-              }));
-            }, 20000);
-          } catch (e) {
-            console.error('Error al procesar mensaje MQTT:', e);
-          }
-        });
+        //         return {
+        //           ...prev,
+        //           [espid]: status,
+        //         };
+        //       });
+        //     }
 
-        client.on('error', (error) => {
-          console.error('Error en conexión MQTT:', error);
-          Alert.alert('Error', 'Error en conexión MQTT');
-        });
+        //     setTimeout(() => {
+        //       setActivityMap((prev) => ({
+        //         ...prev,
+        //         [espid]: false,
+        //       }));
+        //     }, 20000);
+        //   } catch (e) {
+        //     console.error('Error al procesar mensaje MQTT:', e);
+        //   }
+        // });
+
+        // client.on('error', (error) => {
+        //   console.error('Error en conexión MQTT:', error);
+        //   Alert.alert('Error', 'Error en conexión MQTT');
+        // });
       } catch (e) {
         console.error('Error al conectar MQTT:', e);
         Alert.alert('Error', 'Error al conectar MQTT');
