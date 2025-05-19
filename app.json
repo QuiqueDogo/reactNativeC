@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "252173f1-693e-46a4-bbdc-c4cbc088efd6"
+      }
+    },
+    "owner": "quique935"
   }
 }
