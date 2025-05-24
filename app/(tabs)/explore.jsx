@@ -2,20 +2,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import parseMilliseconds from 'parse-ms';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Button,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Button,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
-import MapView, { Marker } from 'react-native-maps';
+// import MapView, { Marker } from 'react-native-maps';
 import mqtt from 'react-native-mqtt';
 import { RadioButton } from 'react-native-paper';
 
@@ -218,7 +218,7 @@ const initCurrentID = [
   { Compilation: '0.0', complete: false },
 ];
 
-function DevicesBendita() {
+export default function DevicesBendita() {
   const [Toggled1, setToggled1] = useState(false);
   const [Toggled2, setToggled2] = useState(false);
   const [url, setUrl] = useState('https://iotayudo.com/download/sketch2.121.bin');
@@ -1094,4 +1094,4 @@ function DevicesBendita() {
   );
 }
 
-export default DevicesBendita;
+// export default DevicesBendita;
