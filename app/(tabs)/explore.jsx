@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 // import MapView, { Marker } from 'react-native-maps';
-import mqtt from 'react-native-mqtt';
+import mqtt from 'mqtt';
 import { RadioButton } from 'react-native-paper';
 
 // let MapView, Marker;
@@ -241,7 +241,7 @@ export default function DevicesBendita() {
   const [lastAct, setLastAct] = useState(null);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [value, setValue] = useState('');
-  const [list, setList] = useState(initialList);
+  // const [list, setList] = useState(initialList);
   const [mesg, setMesg] = useState(<Text style={{ fontStyle: 'italic' }}>nothing heard</Text>);
   const [mesg2, setMesg2] = useState(<Text style={{ fontStyle: 'italic' }}>nothing heard</Text>);
   const [connected, setConnected] = useState(false);
@@ -286,6 +286,65 @@ export default function DevicesBendita() {
     return () => clearTimeout(timeout);
   }, [mqttconnected]);
 
+  const initialList = [
+    {
+      "id": 1,
+      "name": "CDMX",
+      "espid": "esp32-30c922ef4904",
+      "complete": false,
+      "lat": 18.36939557889391,
+      "lng": -100.6670014556886
+    } , {
+      "id": 2,
+      "name": "Tlaxcala",
+      "espid": "esp32-30c922ef4790",
+      "complete": false,
+      "lat": 18.36939557889391,
+      "lng": -100.6670014556886
+    }  , {
+      "id": 3,
+      "name": "Morelia",
+      "espid": "esp32-30c922ef3a00",
+      "complete": false,
+      "lat": 18.36939557889391,
+      "lng": -100.6670014556886
+    }  , {
+      "id": 4,
+      "name": "Uruapan",
+      "espid": "esp32-30c922ef4138",
+      "complete": false,
+      "lat": 18.36939557889391,
+      "lng": -100.6670014556886
+    }  , {
+      "id": 5,
+      "name": "ALtamirano",
+      "espid": "esp32-30c922ef2f84",
+      "complete": false,
+      "lat": 18.36939557889391,
+      "lng": -100.6670014556886
+    } 
+    
+    
+  ];
+  const [list, setList] = useState(initialList);
+
+  useEffect(() => {
+    const loadList = async () => {
+      try {
+        const savedList = await AsyncStorage.getItem('list');
+        if (savedList) {
+          setList(JSON.parse(savedList));
+        } else {
+          setList(initialList);
+        }
+      } catch (e) {
+        console.error('Error loading list', e);
+        setList(initialList);
+      }
+    };
+    
+    loadList();
+  }, []);
   // Actualizar ubicaciones cuando cambia la lista
   useEffect(() => {
     if (flgFromAnswordShowme) {
@@ -529,222 +588,267 @@ export default function DevicesBendita() {
         }
       });
     }
+  };  
+  var client;
+
+  const clientId = getClientId();
+  const options = {
+    clientId, // Usar el clientId generado o existente
+    username: "cristopher",
+    password: "myPass45682",
+    clean: true, // Limpiar la sesión al desconectarse
   };
+    
 
   const connectToMQTT = async () => {
-    if (!mqttconnected) {
-      try {
-        const clientId = await getClientId();
-        const options = {
-          clientId,
-          username: 'cristian',
-          password: 'R3gh45#yER',
-          clean: true,
-        };
+    console.log('entro aqui1', mqttconnected, !mqttconnected, mqtt)
 
-        const client = mqtt.connect('wss://2807ccce5f924766a34afeab1eb54217.s2.eu.hivemq.cloud:8884/mqtt', options);
+    if(currentDeviceID===""){
+      // alert("Elije un device ID")
+      // return;
+    }    
+    if(mqttconnected  == false){
+          // alert(mqttconnected)
 
-        client.on('connect', () => {
-          list.forEach((device) => {
-            client.subscribe(`gbic/RESPONSE/${device.espid}`, { qos: 1 }, (error) => {
-              if (error) {
-                console.log(`Error al suscribirse a ${device.espid}:`, error);
-              } else {
-                console.log(`Suscrito a ${device.espid}`);
+      client=mqtt.connect('wss://65f4272c8a664784b2770884244038ea.s1.eu.hivemq.cloud:8884/mqtt',options)
+      console.log(client, 'aquii')
+      client.on('connect',()=>{   
+             console.log('entro aqui2')
+              list.forEach((device) => {
+                client.subscribe(`mycluster/RESPONSE/${device["espid"]}`, { qos: 1 }, (error) => {
+                  if (error) {
+                    console.log(`Error al suscribirse a ${device["espid"]}:`, error);
+                  } else {
+                    console.log(`Suscrito a ${device["espid"]}`);
+                  }
+                });
+                // alert(`mycluster/RESPONSE/${device["espid"]}`);
+              });
+
+
+              setMqClient(client);
+              // setdisabledList(true);
+              setMqttconnected(true)  
+
+
+
+      })
+
+      client.on('message', (topic, message) => {
+        // alert(message)
+        // Identificar el `espid` del tópico
+        setLastAct(new Date().toLocaleString()); // Guarda la fecha y hora actual como string
+        
+        const espid = topic.split('/').pop();
+
+        const data = JSON.parse(message);
+        // Actualizar el estado de actividad
+        setActivityMap((prev) => ({
+          ...prev,
+          [espid]: true, // Marca actividad para el dispositivo
+        }));
+
+        // console.log(data.COMPILATION)
+
+
+        const isAnswordShowme = 
+        data.server && 
+        // data.token && 
+        data.time && 
+        data.db && 
+        data.location && 
+        data.zone ;
+
+        // && 
+        //         data.updatepass
+
+
+        console.log(data)
+
+        if (isAnswordShowme) {
+          // Actualizar el estado de `currentID` con los valores recibidos
+          
+          setCurrentID((prev) => ({
+            ...prev,
+            DeviceID: espid,
+            IP: data.IP || '',
+            Server: data.server || '',
+            token: data.token || '',
+            Time: String(data.time) || '',
+            port: String(data.port) || '',
+            Token: data.token ? data.token.substring(0, 20)+"..." : '' || '', // Parece que 'Token' es lo mismo que 'token', pero verifica
+            Database: data.db || '',
+            Ubicación: data.location || '', // Asegúrate de que 'location' existe en el JSON
+            Zona: data.zone || '',
+            updatepass: data.updatepass || '',
+            Compilation:data.COMPILATION
+          }));
+
+          setEncrypted(encryptPassword(espid));
+          if (data.Perifs && Array.isArray(data.Perifs)) {
+            // Buscar los estados de los idx 4 y 5
+            const perif3 = data.Perifs.find((perif) => perif.idx === 3);
+            const perif4 = data.Perifs.find((perif) => perif.idx === 4);
+        
+            // Actualizar los estados de Toggled1 y Toggled2
+            setToggled1(perif3 ? perif3.state : false); // Si no existe perif4, se usa false como valor predeterminado
+            setToggled2(perif4 ? perif4.state : false); // Si no existe perif5, se usa false como valor predeterminado
+          }
+
+          
+          
+          if (data.getOffset !== undefined ) {
+            setOff(data.getOffset)
+          }else{
+            setOff("-")
+
+          }
+
+          
+          const now = new Date();
+          const time = now.toLocaleTimeString(); // Hora en formato '3:09:11 p.m.'
+          const date = now.toLocaleDateString(); // Fecha en formato '18/2/2025'
+
+          setActionMap((prev) => ({
+            ...prev,
+            [espid]: "["+(data.IP||"")+"]"+" ["+formatName( `${time} ${date}`,8)+"]",         
+
+          }));
+          
+          const updatedList = prevList => 
+            prevList.map(item => {
+              if (item.espid === espid) {
+                //alert(item.lat)
+
+                if (item.lat && item.lng) {
+                  setLat(item.lat);
+                  setLng(item.lng);
+                  setFocus([item.lat, item.lng]);
+                }else{
+                  setFocus([19.70078, -101.18443]);
+
+                }
+                return { ...item, name: data.location,voltageCFE:"-",
+                  temperatura:"-" }; // Actualiza el nombre
               }
-            });
-          });
+              return item;
+            }); 
+            // ubicacionesConCoords
 
-          setMqClient(client);
-          setdisabledList(true);
-          setMqttconnected(true);
-        });
+          // Actualizamos el estado de la lista
+          setList(updatedList);    
+          // Guardamos la lista actualizada en localStorage
+          localStorage.setItem('list', JSON.stringify(updatedList));
+          setFlgFromAnswordShowme(true);
 
-        client.on('message', (topic, message) => {
-          setLastAct(new Date().toLocaleString());
-          const espid = topic.split('/').pop();
+        }else{
+          // alert(JSON.stringify(data, null, 2))
 
-          try {
-            const data = JSON.parse(message.toString());
-            setActivityMap((prev) => ({
-              ...prev,
-              [espid]: true,
-            }));
+          setActionMap((prev) => {
+            let status = "[Error desconocido]"; // Valor por defecto
+          
+            if (data.statusupload !== undefined) {
+              status = data.statusupload === '204' ? "[Transmitiendo]" : "[Err en transmisión]";
+            } else if (data.updateSketch !== undefined) {
+              status = data.updateSketch ? "[updateSketch OK]" : "[Err updateSketch]";
+            } else if (data.updatedatas !== undefined) {
+              status = data.updatedatas ? "[mycluster data updated]" : "[Err updated]";
+            } else if (data.updateSpiffs !== undefined) {
+              status = data.updateSpiffs ? "[updateSpiffs OK]" : "[Err updateSpiffs]";
+            } else if (data.ONLINE !== undefined) {
+              status = data.ONLINE ? "[ONLINE OK]" : "[Err ONLINE]";
+            } else if (data.lastDatas !== undefined) {
+              status = "[Battery "+ (data.Battery).toFixed(1)+"%]";
+              
+              status= status+" ["+ formatName(formatDuration(data.uptime?data.uptime:0),6)+"]";
+              status= status+" ["+ formatName(data.lastDatas,15)+"]";
 
-            const isAnswordShowme =
-              data.server && data.token && data.time && data.db && data.location && data.zone;
-
-            if (isAnswordShowme) {
-              setCurrentID((prev) => ({
-                ...prev,
-                DeviceID: espid,
-                IP: data.IP || '',
-                Server: data.server || '',
-                token: data.token || '',
-                Time: String(data.time) || '',
-                port: String(data.port) || '',
-                Token: data.token ? data.token.substring(0, 20) + '...' : '' || '',
-                Database: data.db || '',
-                Ubicación: data.location || '',
-                Zona: data.zone || '',
-                updatepass: data.updatepass || '',
-                Compilation: data.COMPILATION,
-              }));
-
-              setEncrypted(encryptPassword(espid));
-
-              if (data.Perifs && Array.isArray(data.Perifs)) {
-                const perif3 = data.Perifs.find((perif) => perif.idx === 3);
-                const perif4 = data.Perifs.find((perif) => perif.idx === 4);
-                setToggled1(perif3 ? perif3.state : false);
-                setToggled2(perif4 ? perif4.state : false);
-              }
-
-              if (data.getOffset !== undefined) {
-                setOff(data.getOffset);
-              } else {
-                setOff('-');
-              }
-
-              const now = new Date();
-              const time = now.toLocaleTimeString();
-              const date = now.toLocaleDateString();
-
-              setActionMap((prev) => ({
-                ...prev,
-                [espid]: '[' + (data.IP || '') + '] [' + formatName(`${time} ${date}`, 8) + ']',
-              }));
-
-              const updatedList = (prevList) =>
-                prevList.map((item) => {
+              setLastDatas("Encendido desde: "+formatDuration(data.uptime?data.uptime:0)+", con datos: "+data.lastDatas +" and batteria interna: "+data.Battery);
+              
+              const updatedList = prevList =>
+                prevList.map(item => {
                   if (item.espid === espid) {
-                    if (item.lat && item.lng) {
-                      setLat(item.lat);
-                      setLng(item.lng);
-                      setFocus([item.lat, item.lng]);
-                    } else {
-                      setFocus([19.70078, -101.18443]);
-                    }
-                    return { ...item, name: data.location, voltageCFE: '-', temperatura: '-' };
+                    // Convertir lastDatas a objeto
+                    const datos = Object.fromEntries(
+                      data.lastDatas
+                        .trim()
+                        .split('\n')
+                        .map(line => line.split('=')) // separa por "="
+                    );
+              
+                    // Extraer valores deseados
+                    const voltageCFE = parseFloat(datos.voltaje_cfe);
+                    const temperatura = parseFloat(datos.temperatura);
+              
+                    return {
+                      ...item,
+                      voltageCFE,
+                      temperatura
+                    };
                   }
                   return item;
                 });
-
+              
               setList(updatedList);
-              AsyncStorage.setItem('list', JSON.stringify(updatedList));
-              setFlgFromAnswordShowme(true);
-            } else {
-              setActionMap((prev) => {
-                let status = '[Error desconocido]';
+              
 
-                if (data.statusupload !== undefined) {
-                  status = data.statusupload === '204' ? '[Transmitiendo]' : '[Err en transmisión]';
-                } else if (data.updateSketch !== undefined) {
-                  status = data.updateSketch ? '[updateSketch OK]' : '[Err updateSketch]';
-                } else if (data.updatedatas !== undefined) {
-                  status = data.updatedatas ? '[GBIC data updated]' : '[Err updated]';
-                } else if (data.updateSpiffs !== undefined) {
-                  status = data.updateSpiffs ? '[updateSpiffs OK]' : '[Err updateSpiffs]';
-                } else if (data.ONLINE !== undefined) {
-                  status = data.ONLINE ? '[ONLINE OK]' : '[Err ONLINE]';
-                } else if (data.lastDatas !== undefined) {
-                  status = '[Battery ' + data.Battery.toFixed(1) + '%]';
-                  status =
-                    status +
-                    ' [' +
-                    formatName(formatDuration(data.uptime ? data.uptime : 0), 6) +
-                    ']';
-                  status = status + ' [' + formatName(data.lastDatas, 15) + ']';
-
-                  setLastDatas(
-                    'Encendido desde: ' +
-                      formatDuration(data.uptime ? data.uptime : 0) +
-                      ', con datos: ' +
-                      data.lastDatas +
-                      ' and batteria interna: ' +
-                      data.Battery
-                  );
-
-                  const updatedList = (prevList) =>
-                    prevList.map((item) => {
-                      if (item.espid === espid) {
-                        const datos = Object.fromEntries(
-                          data.lastDatas
-                            .trim()
-                            .split('\n')
-                            .map((line) => line.split('='))
-                        );
-
-                        const voltageCFE = parseFloat(datos.voltaje_cfe);
-                        const temperatura = parseFloat(datos.temperatura);
-
-                        return {
-                          ...item,
-                          voltageCFE,
-                          temperatura,
-                        };
-                      }
-                      return item;
-                    });
-
-                  setList(updatedList);
-                }
-
-                const now = new Date();
-                const time = now.toLocaleTimeString();
-                const date = now.toLocaleDateString();
-
-                status = status + ' [' + formatName(`${time} ${date}`, 8) + ']';
-
-                return {
-                  ...prev,
-                  [espid]: status,
-                };
-              });
             }
 
-            setTimeout(() => {
-              setActivityMap((prev) => ({
-                ...prev,
-                [espid]: false,
-              }));
-            }, 20000);
-          } catch (e) {
-            console.error('Error al procesar mensaje MQTT:', e);
-          }
-        });
+            const now = new Date();
+            const time = now.toLocaleTimeString(); // Hora en formato '3:09:11 p.m.'
+            const date = now.toLocaleDateString(); // Fecha en formato '18/2/2025'
 
-        client.on('error', (error) => {
-          console.error('Error en conexión MQTT:', error);
-          Alert.alert('Error', 'Error en conexión MQTT');
-        });
-      } catch (e) {
-        console.error('Error al conectar MQTT:', e);
-        Alert.alert('Error', 'Error al conectar MQTT');
-      }
-    } else {
-      if (mqclient) {
-        mqclient.end(() => {
-          setMqClient(null);
-          setMqttconnected(false);
-          setdisabledList(false);
-          setCurrentID({
-            ...currentID,
-            DeviceID: '',
-            IP: '',
-            Server: '',
-            token: '',
-            Time: '',
-            Token: '',
-            Database: '',
-            Ubicación: '',
-            Zona: '',
-            updatepass: '',
-            Compilation: '',
+            status= status+" ["+ formatName(`${time} ${date}`,8)+"]";
+
+            return {
+              ...prev,
+              [espid]: status,
+            };
           });
-        });
-      }
+          
+
+        }
+          
+        
+
+        // Restablecer actividad después de 3 segundos
+        setTimeout(() => {
+          setActivityMap((prev) => ({
+            ...prev,
+            [espid]: false,
+          }));
+        }, 20000);
+      });
+      
+    }else{
+      alert("Desconected");
+      setdisabledList(false);
+      setMqttconnected(false)
+      //client.end();
+      client.end(() => {
+        setMqClient(null);
+      });
+
+      console.log(currentID);
+
+      setCurrentID({...currentID, 
+        
+        DeviceID: "",
+        IP: '',
+        Server: '',
+        token: '',
+        Time: '',
+        Token: '',
+        Database: '',
+        Ubicación: '',
+        Zona: '',
+        updatepass: '',
+        Compilation:''
+      })
+      
+        console.log(currentID);
     }
+    
   };
 
   const handleClearLocalStorage = async () => {
@@ -898,7 +1002,7 @@ export default function DevicesBendita() {
 
         <View style={styles.card}>
           <Text style={styles.title}>Ubicaciones</Text>
-          {renderMap}
+          {/* {renderMap} */}
           {/* <MapView
             style={styles.map}
             initialRegion={{
