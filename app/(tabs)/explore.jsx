@@ -194,13 +194,22 @@ const getClientId = async () => {
 
 const initialList = [
   {
-    id: 11,
-    name: 'OmarTEST01',
-    espid: 'esp32-24dcc305cac8',
-    complete: false,
-  },
+    "id": 7,
+    "name": "MoreliaRadio",
+    "espid": "esp32-a842e3b9298c",
+    "complete": false,
+    "lat": 18.36939557889391,
+    "lng": -100.6670014556886
+  },    {
+    "id": 8,
+    "name": "MoreliaWIFI",
+    "espid": "esp32-d8132a7fb594",
+    "complete": false,
+    "lat": 18.36939557889391,
+    "lng": -100.6670014556886
+  } 
+  
 ];
-
 const initCurrentID = [
   { DeviceID: '', complete: false },
   { Server: 'sensores.gbic.mx', complete: false },
@@ -288,41 +297,21 @@ export default function DevicesBendita() {
 
   const initialList = [
     {
-      "id": 1,
-      "name": "CDMX",
-      "espid": "esp32-30c922ef4904",
+      "id": 7,
+      "name": "MoreliaRadio",
+      "espid": "esp32-a842e3b9298c",
       "complete": false,
       "lat": 18.36939557889391,
       "lng": -100.6670014556886
-    } , {
-      "id": 2,
-      "name": "Tlaxcala",
-      "espid": "esp32-30c922ef4790",
-      "complete": false,
-      "lat": 18.36939557889391,
-      "lng": -100.6670014556886
-    }  , {
-      "id": 3,
-      "name": "Morelia",
-      "espid": "esp32-30c922ef3a00",
-      "complete": false,
-      "lat": 18.36939557889391,
-      "lng": -100.6670014556886
-    }  , {
-      "id": 4,
-      "name": "Uruapan",
-      "espid": "esp32-30c922ef4138",
-      "complete": false,
-      "lat": 18.36939557889391,
-      "lng": -100.6670014556886
-    }  , {
-      "id": 5,
-      "name": "ALtamirano",
-      "espid": "esp32-30c922ef2f84",
+    },    {
+      "id": 8,
+      "name": "MoreliaWIFI",
+      "espid": "esp32-d8132a7fb594",
       "complete": false,
       "lat": 18.36939557889391,
       "lng": -100.6670014556886
     } 
+    
     
     
   ];
